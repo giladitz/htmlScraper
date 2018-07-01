@@ -84,15 +84,18 @@ class myHTMLParser(HTMLParser):
 
     @staticmethod
     def getStrippedKey(keyString):
-        res = re.search('(\w+)\[', keyString)
-        # return the first word\s before the [...] brackets
-        return res.group(1)        
+        if(myHTMLParser.checkIfInstructionsInKeyString(keyString)):
+            res = re.search('(\w+)\[', keyString)
+            # return the first word\s before the [...] brackets
+            return res.group(1)        
+        else:
+            return keyString
 
     def dictionaryAppendTo(self, data):
         # option (1)
         # ' ' space at the begining means we need to concatenate it to the last string
         if(data.startswith(' ')):
-            key = self.dictionaryTraceLast(self.keysIterator)
+            key = myHTMLParser.getStrippedKey(self.dictionaryTraceLast(self.keysIterator))
             if(key != 'na'):
                 # pass the found key to the add to last function to complete the cncatenating
                 self.dictionaryAddToLast(key, data, " - ")
@@ -108,7 +111,10 @@ class myHTMLParser(HTMLParser):
                 instructionInKey = myHTMLParser.checkForTheInstructionInKeyString(self.keysIteratorList[self.keysIterator])
                 # check that any item in the key instruction is not in the current data
                 # NOT WORKING!!! the 'not if' is not finding any 'Listed' for example!
-                if any(itm not in data for itm in instructionInKey):
+                if any(itm in data for itm in instructionInKey):
+                    self.firstInARow = True
+                    self.keysIterator += 1
+                else:
                     key = myHTMLParser.getStrippedKey(self.keysIteratorList[self.keysIterator])
                     if(self.firstInARow):
                         self.jDictionary[key].append(data)
@@ -116,9 +122,7 @@ class myHTMLParser(HTMLParser):
                     else:
                         self.dictionaryAddToLast(key, data, " ")
                     return
-                else:
-                    self.firstInARow = True
-                    self.keysIterator += 1
+                    
 
             # option (2.1)        
             # 'add to last' is a special item that tells us to add this data to the last
@@ -153,6 +157,10 @@ class myHTMLParser(HTMLParser):
     def dictionaryTraceLast(self, index):
         # going backwards from given index-1 to index 0
         try:
+            # if this is the first index, use its key
+            if(index == 0):
+                return self.keysIteratorList[index]
+
             #print(index)
             for tracebackIndex in range(index-1,-1,-1):
                 if(self.keysIteratorList[tracebackIndex] != 'add to last'):
